@@ -135,16 +135,17 @@ class BigQueryWriteTransport(abc.ABC):
             self.create_write_stream: gapic_v1.method.wrap_method(
                 self.create_write_stream,
                 default_retry=retries.Retry(
-                    initial=0.1,
-                    maximum=60.0,
+                    initial=10.0,
+                    maximum=120.0,
                     multiplier=1.3,
                     predicate=retries.if_exception_type(
                         core_exceptions.DeadlineExceeded,
+                        core_exceptions.ResourceExhausted,
                         core_exceptions.ServiceUnavailable,
                     ),
-                    deadline=600.0,
+                    deadline=1200.0,
                 ),
-                default_timeout=600.0,
+                default_timeout=1200.0,
                 client_info=client_info,
             ),
             self.append_rows: gapic_v1.method.wrap_method(
