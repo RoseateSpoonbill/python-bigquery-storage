@@ -4,6 +4,13 @@
 
 [1]: https://pypi.org/project/google-cloud-bigquery-storage/#history
 
+## [2.13.3](https://github.com/googleapis/python-bigquery-storage/compare/v2.13.2...v2.13.3) (2022-06-24)
+
+
+### Bug Fixes
+
+* handle AttributeError in bigquery_storage writer ([#414](https://github.com/googleapis/python-bigquery-storage/issues/414)) ([2cb641a](https://github.com/googleapis/python-bigquery-storage/commit/2cb641a7e0e8bfde23693b4f59f6b914520d7364))
+
 ## [2.13.2](https://github.com/googleapis/python-bigquery-storage/compare/v2.13.1...v2.13.2) (2022-06-06)
 
 
