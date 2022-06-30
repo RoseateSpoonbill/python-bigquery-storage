@@ -14,21 +14,56 @@
 
 # [START bigquerystorage_append_rows_pending]
 """
-This code sample demonstrates how to write records in pending mode
+Description: This code sample demonstrates how to write records in pending mode
 using the low-level generated client for Python.
+
+Documentation to reference
+    * https://cloud.google.com/python/docs/reference/bigquerystorage/latest
+    * https://googleapis.dev/python/protobuf/latest/index.html
+
+If you update the protocol buffer definition (i.e. the customer_record.proto file),
+you need to regenerate the customer_record_pb2.py module by running this command
+from the samples/snippets directory to generate the customer_record_pb2.py module:
+    protoc --python_out=. customer_record.proto
+
 """
 
+from xmlrpc.client import boolean
 from google.cloud import bigquery_storage_v1
 from google.cloud.bigquery_storage_v1 import types
 from google.cloud.bigquery_storage_v1 import writer
 from google.protobuf import descriptor_pb2
+import logging
+import os
+import sys
+from googleapiclient.discovery import build
+import httplib2
 
-# If you update the customer_record.proto protocol buffer definition, run:
-#
-#   protoc --python_out=. customer_record.proto
-#
-# from the samples/snippets directory to generate the customer_record_pb2.py module.
 from . import customer_record_pb2
+
+# Figure out if we defined the log level when we called this file (` --log={{LOGLEVEL}}`)
+logging_level = os.environ.get('LOGLEVEL', 'WARNING').upper()
+logging_numeric_level = getattr(logging, logging_level, None)
+if not isinstance(logging_numeric_level, int):
+    raise ValueError('Invalid log level: %s' % logging_numeric_level)
+
+# Configure the logging
+logging.basicConfig(
+    level=logging_level,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    handlers=[
+        #logging.FileHandler("debug.log"),  # Uncomment if you want to log the output to a file (how the file is currently set up, it doesn't log everything)
+        logging.StreamHandler()
+        #logging.NullHandler()
+    ]
+)
+
+if logging_level == logging.DEBUG:
+    # enable logging of all HTTP request and response headers and bodies
+    httplib2.debuglevel = 4
+
+    # print out arguments passed to this file
+    logging.debug(sys.argv)
 
 
 def create_row_data(row_num: int, name: str):
@@ -79,7 +114,7 @@ def append_rows_pending(project_id: str, dataset_id: str, table_id: str):
     proto_rows = types.ProtoRows()
     proto_rows.serialized_rows.append(create_row_data(1, "Alice"))
     proto_rows.serialized_rows.append(create_row_data(2, "Bob"))
-
+    
     # Set an offset to allow resuming this stream if the connection breaks.
     # Keep track of which requests the server has acknowledged and resume the
     # stream at the first non-acknowledged message. If the server has already
@@ -93,6 +128,7 @@ def append_rows_pending(project_id: str, dataset_id: str, table_id: str):
     proto_data.rows = proto_rows
     request.proto_rows = proto_data
 
+    # Send an append rows request to the open stream
     response_future_1 = append_rows_stream.send(request)
 
     # Send another batch.
@@ -114,8 +150,11 @@ def append_rows_pending(project_id: str, dataset_id: str, table_id: str):
 
     print(response_future_1.result())
     print(response_future_2.result())
-
+    
     # Shutdown background threads and close the streaming connection.
+    # Note: If you turn on DEBUG logging, you will get a 499 error that 
+        # the grpc._channel._MultiThreadedRendezvous terminated and was 
+        # "Locally cancelled by application!"  You can ignore that message
     append_rows_stream.close()
 
     # A PENDING type stream must be "finalized" before being committed. No new
@@ -129,6 +168,4 @@ def append_rows_pending(project_id: str, dataset_id: str, table_id: str):
     write_client.batch_commit_write_streams(batch_commit_write_streams_request)
 
     print(f"Writes to stream: '{write_stream.name}' have been committed.")
-
-
 # [END bigquerystorage_append_rows_pending]
