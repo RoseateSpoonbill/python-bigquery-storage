@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# [START bigquerystorage_append_rows_pending]
+# [START bigquerystorage_append_rows_committed]
 """
-Description: This code sample demonstrates how to write records in pending mode
+Description: This code sample demonstrates how to write records in committed mode
 using the low-level generated client for Python.
 
 Documentation to reference
@@ -73,17 +73,17 @@ def create_row_data(row_num: int, name: str):
     return row.SerializeToString()
 
 
-def append_rows_pending(project_id: str, dataset_id: str, table_id: str):
+def append_rows_committed(project_id: str, dataset_id: str, table_id: str):
 
     """Create a write stream, write some sample data, and commit the stream."""
     write_client = bigquery_storage_v1.BigQueryWriteClient()
     parent = write_client.table_path(project_id, dataset_id, table_id)
     write_stream = types.WriteStream()
 
-    # When creating the stream, choose the type. Use the PENDING type to wait
-    # until the stream is committed before it is visible. See:
+    # When creating the stream, choose the type. Use the COMMITTED type to automatically
+    # commit the stream and for data to appear as soon as the write is acknowledged. See:
     # https://cloud.google.com/bigquery/docs/reference/storage/rpc/google.cloud.bigquery.storage.v1#google.cloud.bigquery.storage.v1.WriteStream.Type
-    write_stream.type_ = types.WriteStream.Type.PENDING
+    write_stream.type_ = types.WriteStream.Type.COMMITTED
     write_stream = write_client.create_write_stream(
         parent=parent, write_stream=write_stream
     )
@@ -112,8 +112,8 @@ def append_rows_pending(project_id: str, dataset_id: str, table_id: str):
     # Create a batch of row data by appending proto2 serialized bytes to the
     # serialized_rows repeated field.
     proto_rows = types.ProtoRows()
-    proto_rows.serialized_rows.append(create_row_data(1, "Alice"))
-    proto_rows.serialized_rows.append(create_row_data(2, "Bob"))
+    proto_rows.serialized_rows.append(create_row_data(4, "Ming"))
+    proto_rows.serialized_rows.append(create_row_data(5, "Vinay"))
     
     # Set an offset to allow resuming this stream if the connection breaks.
     # Keep track of which requests the server has acknowledged and resume the
@@ -133,7 +133,7 @@ def append_rows_pending(project_id: str, dataset_id: str, table_id: str):
 
     # Send another batch.
     proto_rows = types.ProtoRows()
-    proto_rows.serialized_rows.append(create_row_data(3, "Charles"))
+    proto_rows.serialized_rows.append(create_row_data(6, "Roberto"))
 
     # Since this is the second request, you only need to include the row data.
     # The name of the stream and protocol buffers DESCRIPTOR is only needed in
@@ -157,15 +157,5 @@ def append_rows_pending(project_id: str, dataset_id: str, table_id: str):
         # "Locally cancelled by application!"  You can ignore that message
     append_rows_stream.close()
 
-    # A PENDING type stream must be "finalized" before being committed. No new
-    # records can be written to the stream after this method has been called.
-    write_client.finalize_write_stream(name=write_stream.name)
-
-    # Commit the stream you created earlier.
-    batch_commit_write_streams_request = types.BatchCommitWriteStreamsRequest()
-    batch_commit_write_streams_request.parent = parent
-    batch_commit_write_streams_request.write_streams = [write_stream.name]
-    write_client.batch_commit_write_streams(batch_commit_write_streams_request)
-
     print(f"Writes to stream: '{write_stream.name}' have been committed.")
-# [END bigquerystorage_append_rows_pending]
+# [END bigquerystorage_append_rows_committed]
